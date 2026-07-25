@@ -258,7 +258,7 @@ export function AnnouncementScene() {
           </h2>
           <p className="mx-auto mt-5 max-w-md text-sm leading-relaxed text-muted-foreground">
             With the blessings of our families, we would be honoured by your presence and your
-            duʿāʾ as we begin this life together.
+            dua as we begin this life together.
           </p>
         </Reveal>
 

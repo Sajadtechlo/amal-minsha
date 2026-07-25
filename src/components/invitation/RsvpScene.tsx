@@ -8,7 +8,7 @@ const schema = z.object({
   name: z.string().trim().min(2, "Please share your name").max(80, "That name is a little long"),
   guests: z.coerce.number().int().min(1, "At least one guest").max(12, "Please contact us directly"),
   attending: z.enum(["yes", "no"]),
-  note: z.string().trim().max(400, "Please keep your duʿāʾ under 400 characters").optional(),
+  note: z.string().trim().max(400, "Please keep your dua under 400 characters").optional(),
 });
 
 type Errors = Partial<Record<keyof z.infer<typeof schema>, string>>;
@@ -57,9 +57,9 @@ export function RsvpScene() {
         <Reveal delay={0.2} className="mt-12">
           {sent ? (
             <div className="paper rounded-sm px-8 py-16 text-center">
-              <p className="font-script text-4xl text-ink">Jazākum Allāhu khayran</p>
+              <p className="font-script text-4xl text-ink">Jazakum Allahu Khayran</p>
               <p className="mt-6 text-sm leading-relaxed text-muted-foreground">
-                Your response has been received. We look forward to seeing you, in shāʾ Allāh.
+                Your response has been received. We look forward to seeing you, in sha Allah.
               </p>
             </div>
           ) : (
@@ -123,7 +123,7 @@ export function RsvpScene() {
 
                 <div>
                   <label htmlFor="note" className="eyebrow">
-                    A duʿāʾ or message
+                    A dua or message
                   </label>
                   <textarea
                     id="note"

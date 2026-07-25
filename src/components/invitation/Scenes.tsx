@@ -1,5 +1,5 @@
 import { motion, useReducedMotion, useScroll, useTransform } from "motion/react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { invitation } from "./data";
 import { Reveal } from "./Reveal";
 import { Arch, Divider, GeometricStar, Leaf } from "./Ornaments";
@@ -11,9 +11,60 @@ const EASE = [0.22, 0.61, 0.36, 1] as const;
 
 
 /* Scene 2 — the verse, arriving out of the dark and dissolving into light. */
-export function VerseScene() {
+export function VerseScene({ active = false }: { active?: boolean }) {
+  const sectionRef = useRef<HTMLElement>(null);
+  const reduce = useReducedMotion();
+  const [hint, setHint] = useState(false);
+
+  useEffect(() => {
+    if (!active) return;
+
+    let cancelled = false;
+    let userMoved = false;
+
+    const markMoved = () => {
+      userMoved = true;
+      setHint(false);
+    };
+
+    window.addEventListener("wheel", markMoved, { passive: true });
+    window.addEventListener("touchmove", markMoved, { passive: true });
+    window.addEventListener("scroll", markMoved, { passive: true });
+    window.addEventListener("keydown", markMoved);
+
+    // Soft “scroll” cue appears after the verse settles.
+    const hintTimer = window.setTimeout(() => {
+      if (!cancelled && !userMoved && window.scrollY < 24) setHint(true);
+    }, 2800);
+
+    // If the guest still hasn’t scrolled, gently continue the story.
+    const scrollTimer = window.setTimeout(() => {
+      if (cancelled || userMoved || reduce) return;
+      if (window.scrollY > 40) return;
+
+      const next = sectionRef.current?.nextElementSibling as HTMLElement | null;
+      if (next) {
+        next.scrollIntoView({ behavior: "smooth", block: "start" });
+      } else {
+        window.scrollBy({ top: Math.round(window.innerHeight * 0.9), behavior: "smooth" });
+      }
+      setHint(false);
+    }, 4800);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(hintTimer);
+      window.clearTimeout(scrollTimer);
+      window.removeEventListener("wheel", markMoved);
+      window.removeEventListener("touchmove", markMoved);
+      window.removeEventListener("scroll", markMoved);
+      window.removeEventListener("keydown", markMoved);
+    };
+  }, [active, reduce]);
+
   return (
     <section
+      ref={sectionRef}
       className="relative flex min-h-[100svh] items-center justify-center overflow-hidden px-6"
       style={{ background: "var(--gradient-night)" }}
       aria-labelledby="verse-title"
@@ -45,6 +96,29 @@ export function VerseScene() {
           </p>
         </Reveal>
       </div>
+
+      <motion.div
+        className="pointer-events-none absolute inset-x-0 bottom-10 z-20 flex flex-col items-center gap-2"
+        initial={false}
+        animate={{ opacity: hint ? 1 : 0, y: hint ? 0 : 8 }}
+        transition={{ duration: 1.1, ease: EASE }}
+        aria-hidden={!hint}
+      >
+        <p className="eyebrow text-[color:color-mix(in_oklab,var(--champagne)_75%,white)]">
+          scroll to continue
+        </p>
+        <span className="flex h-8 w-8 items-center justify-center text-champagne/80">
+          <svg viewBox="0 0 24 24" className="h-4 w-4 animate-breathe" fill="none">
+            <path
+              d="M6 9l6 6 6-6"
+              stroke="currentColor"
+              strokeWidth="1.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </span>
+      </motion.div>
     </section>
   );
 }

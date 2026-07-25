@@ -91,7 +91,7 @@ function Index() {
         style={{ opacity: entered ? 1 : 0, transition: "opacity 2.4s var(--ease-breath)" }}
       >
         <h1 className="sr-only">{title}</h1>
-        <VerseScene />
+        <VerseScene active={entered} />
         <DoorwayScene />
         <GardenScene />
         <SoulsScene />

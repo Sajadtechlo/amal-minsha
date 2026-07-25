@@ -4,12 +4,17 @@ import { Reveal } from "./Reveal";
 import { Divider } from "./Ornaments";
 
 function useRemaining(target: string) {
-  const [now, setNow] = useState(() => Date.now());
+  // Start null on server + first client paint to avoid SSR/client clock mismatches.
+  const [now, setNow] = useState<number | null>(null);
   useEffect(() => {
+    setNow(Date.now());
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
   }, []);
   return useMemo(() => {
+    if (now == null) {
+      return { total: 0, days: 0, hours: 0, minutes: 0, seconds: 0, ready: false as const };
+    }
     const diff = Math.max(0, new Date(target).getTime() - now);
     const s = Math.floor(diff / 1000);
     return {
@@ -18,6 +23,7 @@ function useRemaining(target: string) {
       hours: Math.floor((s % 86400) / 3600),
       minutes: Math.floor((s % 3600) / 60),
       seconds: s % 60,
+      ready: true as const,
     };
   }, [now, target]);
 }
@@ -74,7 +80,7 @@ function Ring({
 
 /** Scene 9 — a celestial clock rather than a digit counter. */
 export function CelestialClock() {
-  const { days, hours, minutes, seconds, total } = useRemaining(invitation.dateISO);
+  const { days, hours, minutes, seconds, total, ready } = useRemaining(invitation.dateISO);
   const dayFraction = Math.min(1, days / 365);
 
   return (
@@ -83,7 +89,7 @@ export function CelestialClock() {
         <Reveal>
           <p className="eyebrow">The turning of the sky</p>
           <h2 id="countdown-title" className="mt-4 font-display text-3xl text-ink sm:text-4xl">
-            {total > 0 ? "Until the Nikah" : "Today, alhamdulillah"}
+            {!ready || total > 0 ? "Until the Nikah" : "Today, alhamdulillah"}
           </h2>
           <Divider className="mt-8" />
         </Reveal>
@@ -91,7 +97,11 @@ export function CelestialClock() {
         <Reveal delay={0.2} className="mt-12">
           <div className="relative mx-auto w-full max-w-[26rem]">
             <svg viewBox="0 0 300 300" className="w-full text-olivegold" role="img">
-              <title>{`${days} days, ${hours} hours, ${minutes} minutes and ${seconds} seconds remaining`}</title>
+              <title>
+                {ready
+                  ? `${days} days, ${hours} hours, ${minutes} minutes and ${seconds} seconds remaining`
+                  : "Countdown to the Nikah"}
+              </title>
               <g className="animate-spin-slow" style={{ transformOrigin: "150px 150px" }}>
                 {Array.from({ length: 48 }).map((_, i) => (
                   <line

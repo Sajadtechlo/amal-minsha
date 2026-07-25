@@ -77,13 +77,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Amal & Minsha — Nikah Invitation" },
+      { title: "The Wedding of Amal Ameen & Minsha" },
       {
         name: "description",
         content:
-          "A cinematic digital invitation to the Nikah of Amal & Minsha, September 5, 2026.",
+          "Nikah Mubarak · Saturday, September 5, 2026 · Madavoor Palace Auditorium, Narikkuni",
       },
-      { name: "theme-color", content: "#faf7f1" },
+      { name: "theme-color", content: "#f5e6ca" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],

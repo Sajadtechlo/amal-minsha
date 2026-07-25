@@ -6,7 +6,6 @@ import { Prelude } from "@/components/invitation/Prelude";
 import {
   AnnouncementScene,
   BlessingScene,
-  GardenScene,
   SoulsScene,
   VenueScene,
   VerseScene,
@@ -93,7 +92,6 @@ function Index() {
         <h1 className="sr-only">{title}</h1>
         <VerseScene active={entered} />
         <DoorwayScene />
-        <GardenScene />
         <SoulsScene />
         <AnnouncementScene />
         <CelestialClock />

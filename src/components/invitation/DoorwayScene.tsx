@@ -88,8 +88,7 @@ function GodRays({ progress }: { progress: MotionValue<number> }) {
 
 /**
  * Scene 3 — The gates of heaven.
- * Closed doors are visible immediately. Guests open them at their own pace by scrolling —
- * nothing auto-advances here, so the moment stays still and heavenly.
+ * Doors open once into the heavenly garden — no second repeat of the same image.
  */
 export function DoorwayScene() {
   const containerRef = useRef<HTMLElement>(null);
@@ -122,24 +121,29 @@ export function DoorwayScene() {
   const rightDoorRotate = useTransform(doorOpen, (v) => (reduce ? 72 * v : 88 * v));
   const doorLift = useTransform(doorOpen, (v) => `${-3 * v}%`);
   const doorGlow = useTransform(progress, [0, 0.35, 0.7], [0.55, 0.9, 1]);
-  const doorOpacity = useTransform(progress, [0, 0.72, 0.9], [1, 1, 0]);
+  const doorOpacity = useTransform(progress, [0, 0.68, 0.82], [1, 1, 0]);
 
-  const innerGlow = useTransform(progress, [0.1, 0.35, 0.65, 1], [0.2, 0.75, 1, 1]);
+  const innerGlow = useTransform(progress, [0.1, 0.35, 0.55, 1], [0.2, 0.8, 1, 1]);
   const crackLight = useTransform(progress, [0.12, 0.28, 0.48], [0.35, 1, 0.15]);
-  const floodOpacity = useTransform(progress, [0.48, 0.68, 0.86, 1], [0, 0.55, 0.85, 0.2]);
-  const floodBlur = useTransform(progress, [0.5, 0.75], [0, 8]);
-  const passScale = useTransform(progress, [0.45, 1], [1.02, reduce ? 1.18 : 1.85]);
-  const passY = useTransform(progress, [0.45, 1], ["1%", reduce ? "-2%" : "-8%"]);
-  const gardenClarity = useTransform(progress, [0.4, 0.7], [6, 0]);
+  // Soft veil of light — never a second full-screen “reset” of the garden.
+  const floodOpacity = useTransform(progress, [0.45, 0.58, 0.72, 0.88], [0, 0.35, 0.12, 0]);
+  const floodBlur = useTransform(progress, [0.48, 0.7], [0, 4]);
+  const passScale = useTransform(progress, [0.4, 0.75, 1], [1.02, 1.08, 1.06]);
+  const passY = useTransform(progress, [0.4, 1], ["1%", "0%"]);
+  const gardenClarity = useTransform(progress, [0.35, 0.6], [5, 0]);
   const gardenFilter = useTransform(gardenClarity, (v) => `blur(${v}px)`);
   const floodFilter = useTransform(floodBlur, (v) => `blur(${v}px)`);
-  const veilOpacity = useTransform(progress, [0.7, 0.95], [1, 0]);
-  const auroraOpacity = useTransform(progress, [0.2, 0.5, 0.85], [0.2, 0.5, 0.12]);
+  const veilOpacity = useTransform(progress, [0.62, 0.82], [1, 0]);
+  const auroraOpacity = useTransform(progress, [0.2, 0.5, 0.85], [0.2, 0.45, 0.08]);
+  const moteFade = useTransform(progress, [0, 0.5, 0.85], [1, 1, 0.15]);
 
   // Guidance stays until the doors are clearly opening
   const guideOpacity = useTransform(progress, [0, 0.2, 0.32], [1, 1, 0]);
   const titleOpacity = useTransform(progress, [0, 0.15, 0.35], [1, 1, 0]);
-  const enterLine = useTransform(progress, [0.35, 0.45, 0.62, 0.75], [0, 1, 1, 0]);
+  const enterLine = useTransform(progress, [0.35, 0.45, 0.58, 0.7], [0, 1, 1, 0]);
+  // Caption settles once — this is the garden, not a repeat scene.
+  const gardenCaption = useTransform(progress, [0.72, 0.84, 1], [0, 1, 1]);
+  const gardenVeil = useTransform(progress, [0.75, 0.95], [0.55, 0.2]);
 
   return (
     <section
@@ -168,15 +172,15 @@ export function DoorwayScene() {
         >
           <img
             src={gardenDawn}
-            alt=""
-            aria-hidden="true"
+            alt="A misty garden at dawn with olive trees reflected in still water"
             className="absolute inset-0 h-full w-full object-cover"
           />
-          <div
+          <motion.div
             className="absolute inset-0"
             style={{
+              opacity: gardenVeil,
               background:
-                "radial-gradient(ellipse at 50% 42%, color-mix(in oklab, white 55%, transparent) 0%, color-mix(in oklab, var(--champagne) 28%, transparent) 45%, color-mix(in oklab, #f7f1e6 80%, transparent) 80%)",
+                "radial-gradient(ellipse at 50% 42%, color-mix(in oklab, white 45%, transparent) 0%, color-mix(in oklab, var(--champagne) 22%, transparent) 45%, color-mix(in oklab, #f7f1e6 70%, transparent) 80%)",
             }}
           />
         </motion.div>
@@ -192,7 +196,9 @@ export function DoorwayScene() {
         />
 
         <GodRays progress={progress} />
-        <HeavenMotes progress={progress} reduce={!!reduce} />
+        <motion.div style={{ opacity: moteFade }} className="absolute inset-0">
+          <HeavenMotes progress={progress} reduce={!!reduce} />
+        </motion.div>
 
         {/* Title — always readable when the gate first appears */}
         <motion.div
@@ -303,6 +309,13 @@ export function DoorwayScene() {
         >
           step into the light
         </motion.p>
+
+        <motion.div
+          className="pointer-events-none absolute inset-x-0 bottom-0 z-30 flex items-end justify-center pb-16"
+          style={{ opacity: gardenCaption }}
+        >
+          <p className="eyebrow text-center text-ink/70">two paths, written long before</p>
+        </motion.div>
 
         {/* Crystal-clear next step for every guest */}
         <motion.div

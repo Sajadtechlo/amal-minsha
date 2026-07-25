@@ -1,10 +1,9 @@
-import { motion, useReducedMotion, useScroll, useTransform } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { invitation } from "./data";
 import { Reveal } from "./Reveal";
 import { Divider, GeometricStar, Leaf } from "./Ornaments";
 import { Petals } from "./Petals";
-import gardenDawn from "@/assets/garden-dawn.jpg";
 import floralSpray from "@/assets/floral-spray.png";
 
 const EASE = [0.22, 0.61, 0.36, 1] as const;
@@ -123,48 +122,7 @@ export function VerseScene({ active = false }: { active?: boolean }) {
   );
 }
 
-/* Scene 3 lives in DoorwayScene.tsx — gates of heaven. */
-
-/* Scene 4 — the dreamlike garden the guest walks into. */
-export function GardenScene() {
-  const ref = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
-  const y = useTransform(scrollYProgress, [0, 1], ["-8%", "8%"]);
-
-  return (
-    <section
-      ref={ref}
-      className="relative min-h-[100svh] overflow-hidden"
-      aria-label="A garden at dawn"
-    >
-      <motion.img
-        src={gardenDawn}
-        alt="A misty garden at dawn with olive trees reflected in still water"
-        width={1536}
-        height={1024}
-        loading="lazy"
-        style={{ y }}
-        className="absolute inset-0 h-[116%] w-full object-cover"
-      />
-      <div className="absolute inset-0 bg-gradient-to-b from-ivory/70 via-ivory/10 to-ivory" />
-      <Petals count={16} tone="rose" />
-      <div className="pointer-events-none absolute inset-0" aria-hidden="true">
-        {[18, 42, 66].map((left, i) => (
-          <span
-            key={left}
-            className="absolute top-[-20%] h-[140%] w-[14vw] rotate-12 bg-gradient-to-b from-champagne/25 to-transparent blur-2xl"
-            style={{ left: `${left}%`, animation: `shimmer ${9 + i * 3}s ease-in-out infinite` }}
-          />
-        ))}
-      </div>
-      <div className="relative z-10 flex min-h-[100svh] items-end justify-center pb-24">
-        <Reveal>
-          <p className="eyebrow text-center">two paths, written long before</p>
-        </Reveal>
-      </div>
-    </section>
-  );
-}
+/* Scene 3 lives in DoorwayScene.tsx — gates open once into the heavenly garden. */
 
 /* Scene 5 — two streams of light travel, meet, and the world blossoms into names. */
 export function SoulsScene() {

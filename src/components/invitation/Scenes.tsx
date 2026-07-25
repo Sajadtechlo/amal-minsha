@@ -2,7 +2,7 @@ import { motion, useReducedMotion, useScroll, useTransform } from "motion/react"
 import { useEffect, useRef, useState } from "react";
 import { invitation } from "./data";
 import { Reveal } from "./Reveal";
-import { Arch, Divider, GeometricStar, Leaf } from "./Ornaments";
+import { Divider, GeometricStar, Leaf } from "./Ornaments";
 import { Petals } from "./Petals";
 import gardenDawn from "@/assets/garden-dawn.jpg";
 import floralSpray from "@/assets/floral-spray.png";
@@ -123,36 +123,7 @@ export function VerseScene({ active = false }: { active?: boolean }) {
   );
 }
 
-/* Scene 3 — stars align into geometry, geometry becomes an illuminated doorway. */
-export function DoorwayScene() {
-  const ref = useRef<HTMLDivElement>(null);
-  const reduce = useReducedMotion();
-  const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
-  const scale = useTransform(scrollYProgress, [0, 0.6, 1], [0.8, 1.05, 2.4]);
-  const opacity = useTransform(scrollYProgress, [0, 0.25, 0.7, 1], [0, 1, 1, 0]);
-  const glow = useTransform(scrollYProgress, [0.3, 0.75], [0, 1]);
-
-  return (
-    <section
-      ref={ref}
-      className="relative flex min-h-[110svh] items-center justify-center overflow-hidden bg-ivory px-6"
-      aria-label="A doorway of light opens"
-    >
-      <motion.div
-        style={{ scale: reduce ? 1 : scale, opacity }}
-        className="relative flex items-center justify-center"
-      >
-        <GeometricStar className="absolute h-[70vmin] w-[70vmin] text-champagne/60" />
-        <Arch className="h-[62vmin] text-olivegold/70" />
-        <motion.span
-          style={{ opacity: glow }}
-          className="absolute bottom-0 h-[46vmin] w-[26vmin] rounded-t-full bg-gradient-to-t from-champagne/0 via-champagne/40 to-blush/70 blur-2xl"
-        />
-      </motion.div>
-      <p className="eyebrow absolute bottom-12">keep scrolling</p>
-    </section>
-  );
-}
+/* Scene 3 lives in DoorwayScene.tsx — gates of heaven. */
 
 /* Scene 4 — the dreamlike garden the guest walks into. */
 export function GardenScene() {

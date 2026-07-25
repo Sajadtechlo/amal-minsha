@@ -228,6 +228,20 @@
   }
 }
 
+@keyframes heaven-mote {
+  0% {
+    transform: translate3d(0, 0, 0) scale(0.7);
+    opacity: 0.15;
+  }
+  40% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translate3d(var(--drift-x, 12px), -28vh, 0) scale(1.6);
+    opacity: 0;
+  }
+}
+
 @keyframes spin-slow {
   to {
     transform: rotate(360deg);

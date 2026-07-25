@@ -6,12 +6,12 @@ import { Prelude } from "@/components/invitation/Prelude";
 import {
   AnnouncementScene,
   BlessingScene,
-  DoorwayScene,
   GardenScene,
   SoulsScene,
   VenueScene,
   VerseScene,
 } from "@/components/invitation/Scenes";
+import { DoorwayScene } from "@/components/invitation/DoorwayScene";
 import { CelestialClock } from "@/components/invitation/CelestialClock";
 import { RsvpScene } from "@/components/invitation/RsvpScene";
 import { AmbientAudio, type AmbientAudioHandle } from "@/components/invitation/AmbientAudio";

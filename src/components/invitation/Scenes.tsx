@@ -7,6 +7,9 @@ import { Petals } from "./Petals";
 import gardenDawn from "@/assets/garden-dawn.jpg";
 import floralSpray from "@/assets/floral-spray.png";
 
+const EASE = [0.22, 0.61, 0.36, 1] as const;
+
+
 /* Scene 2 — the verse, arriving out of the dark and dissolving into light. */
 export function VerseScene() {
   return (
@@ -126,7 +129,7 @@ export function SoulsScene() {
     show: (d: number) => ({
       pathLength: 1,
       opacity: 1,
-      transition: { duration: reduce ? 0.3 : 4.2, delay: d, ease: [0.22, 0.61, 0.36, 1] },
+      transition: { duration: reduce ? 0.3 : 4.2, delay: d, ease: EASE },
     }),
   };
 
@@ -326,7 +329,7 @@ export function VenueScene() {
               strokeDasharray="1 6"
               variants={{
                 hidden: { pathLength: 0 },
-                show: { pathLength: 1, transition: { duration: 3.6, ease: [0.22, 0.61, 0.36, 1] } },
+                show: { pathLength: 1, transition: { duration: 3.6, ease: EASE } },
               }}
             />
             <circle cx="12" cy="100" r="3.5" fill="currentColor" opacity="0.6" />

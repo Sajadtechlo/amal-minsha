@@ -39,8 +39,8 @@ export function Petals({ count = 14, tone = "rose", className = "" }: Props) {
           className="absolute top-0 block"
           style={{
             left: `${s.left}%`,
-            width: s.size,
-            height: s.size * (tone === "light" ? 1 : 0.7),
+            width: tone === "light" ? Math.max(2, s.size / 3) : s.size,
+            height: tone === "light" ? Math.max(2, s.size / 3) : s.size * 0.7,
             background: color,
             borderRadius: tone === "light" ? "50%" : "60% 20% 60% 20%",
             opacity: s.opacity,

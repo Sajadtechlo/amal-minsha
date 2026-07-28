@@ -272,6 +272,18 @@
   }
 }
 
+@keyframes heaven-shaft {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: translate3d(-50%, 0, 0) scaleY(1);
+  }
+  50% {
+    opacity: 0.9;
+    transform: translate3d(-50%, 6px, 0) scaleY(1.04);
+  }
+}
+
 @keyframes gate-reveal {
   from {
     opacity: 0;

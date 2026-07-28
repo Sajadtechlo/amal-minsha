@@ -9,7 +9,7 @@ import floralSpray from "@/assets/floral-spray.png";
 const EASE = [0.22, 0.61, 0.36, 1] as const;
 
 
-/* Scene 2 — the verse, arriving out of the dark and dissolving into light. */
+/* Scene 2 — the verse, arriving in soft heavenly light. */
 export function VerseScene({ active = false }: { active?: boolean }) {
   const sectionRef = useRef<HTMLElement>(null);
   const reduce = useReducedMotion();
@@ -31,12 +31,10 @@ export function VerseScene({ active = false }: { active?: boolean }) {
     window.addEventListener("scroll", markMoved, { passive: true });
     window.addEventListener("keydown", markMoved);
 
-    // Soft “scroll” cue appears after the verse settles.
     const hintTimer = window.setTimeout(() => {
       if (!cancelled && !userMoved && window.scrollY < 24) setHint(true);
     }, 2800);
 
-    // If the guest still hasn’t scrolled, gently continue the story.
     const scrollTimer = window.setTimeout(() => {
       if (cancelled || userMoved || reduce) return;
       if (window.scrollY > 40) return;
@@ -65,18 +63,33 @@ export function VerseScene({ active = false }: { active?: boolean }) {
     <section
       ref={sectionRef}
       className="relative flex min-h-[100svh] items-center justify-center overflow-hidden px-6"
-      style={{ background: "var(--gradient-night)" }}
+      style={{ background: "var(--gradient-heaven)" }}
       aria-labelledby="verse-title"
     >
-      <Petals count={18} tone="light" />
-      <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-b from-transparent to-ivory" />
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(ellipse at 50% 40%, color-mix(in oklab, white 65%, transparent) 0%, transparent 58%), radial-gradient(ellipse at 50% 100%, color-mix(in oklab, var(--blush) 35%, transparent), transparent 45%)",
+        }}
+        aria-hidden="true"
+      />
+
+      <motion.div
+        className="pointer-events-none absolute inset-0 flex items-center justify-center text-champagne/20"
+        aria-hidden="true"
+      >
+        <GeometricStar className="h-[70vmin] w-[70vmin] animate-spin-slow" />
+      </motion.div>
+
+      <Petals count={16} tone="gold" />
 
       <div className="relative z-10 mx-auto max-w-3xl text-center">
         <Reveal>
           <p
             dir="rtl"
             lang="ar"
-            className="font-arabic text-2xl leading-[2.4] text-champagne sm:text-4xl"
+            className="font-arabic text-2xl leading-[2.4] text-olivegold sm:text-4xl"
           >
             {invitation.verse.arabic}
           </p>
@@ -84,15 +97,13 @@ export function VerseScene({ active = false }: { active?: boolean }) {
         <Reveal delay={0.8} className="mt-12">
           <h2
             id="verse-title"
-            className="font-display text-xl font-light italic leading-relaxed text-moonstone/90 sm:text-2xl"
+            className="font-display text-xl font-light italic leading-relaxed text-ink/75 sm:text-2xl"
           >
             “{invitation.verse.english}”
           </h2>
         </Reveal>
         <Reveal delay={1.4} className="mt-8">
-          <p className="eyebrow text-[color:color-mix(in_oklab,var(--champagne)_80%,white)]">
-            {invitation.verse.reference}
-          </p>
+          <p className="eyebrow text-ink/50">{invitation.verse.reference}</p>
         </Reveal>
       </div>
 
@@ -103,10 +114,8 @@ export function VerseScene({ active = false }: { active?: boolean }) {
         transition={{ duration: 1.1, ease: EASE }}
         aria-hidden={!hint}
       >
-        <p className="eyebrow text-[color:color-mix(in_oklab,var(--champagne)_75%,white)]">
-          scroll to continue
-        </p>
-        <span className="flex h-8 w-8 items-center justify-center text-champagne/80">
+        <p className="eyebrow text-ink/45">scroll to continue</p>
+        <span className="flex h-8 w-8 items-center justify-center text-olivegold/80">
           <svg viewBox="0 0 24 24" className="h-4 w-4 animate-breathe" fill="none">
             <path
               d="M6 9l6 6 6-6"

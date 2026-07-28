@@ -6,47 +6,109 @@ export type AmbientAudioHandle = {
   start: () => void;
 };
 
+/** Near silence — a breath before the score arrives. */
+const WHISPER_VOLUME = 0.02;
+/** Full cinematic presence. */
+const TARGET_VOLUME = 1;
+/** Long swell so the rise feels scored, not switched on. */
+const SWELL_MS = 10000;
+
+/** Quiet for longer, then blooms — cinematic ease, not a linear fade. */
+function cinematicEase(t: number) {
+  const x = Math.min(1, Math.max(0, t));
+  // First third: barely-there whisper
+  if (x < 0.32) {
+    return 0.12 * Math.pow(x / 0.32, 1.85);
+  }
+  // Remaining: smooth bloom into full voice
+  const u = (x - 0.32) / 0.68;
+  const smooth = u * u * (3 - 2 * u);
+  return 0.12 + 0.88 * Math.pow(smooth, 1.15);
+}
+
 /**
  * Invitation soundtrack from music1.mp3.
- * Plays by default once started from a user gesture; guests can mute via the control.
+ * Begins as a faint whisper and elevates cinematically to full presence.
  */
 export const AmbientAudio = forwardRef<AmbientAudioHandle, { enabled: boolean }>(
   function AmbientAudio({ enabled }, ref) {
     const audioRef = useRef<HTMLAudioElement | null>(null);
+    const rafRef = useRef<number | null>(null);
+    const swellingRef = useRef(false);
     const [on, setOn] = useState(true);
+
+    const clearSwell = useCallback(() => {
+      if (rafRef.current != null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+      swellingRef.current = false;
+    }, []);
+
+    const swellCinematically = useCallback(() => {
+      const audio = audioRef.current;
+      if (!audio) return;
+      clearSwell();
+      swellingRef.current = true;
+      audio.volume = WHISPER_VOLUME;
+      const started = performance.now();
+
+      const tick = (now: number) => {
+        if (!swellingRef.current || !audioRef.current) return;
+        const t = Math.min(1, (now - started) / SWELL_MS);
+        audioRef.current.volume = WHISPER_VOLUME + (TARGET_VOLUME - WHISPER_VOLUME) * cinematicEase(t);
+        if (t < 1) {
+          rafRef.current = requestAnimationFrame(tick);
+        } else {
+          audioRef.current.volume = TARGET_VOLUME;
+          swellingRef.current = false;
+          rafRef.current = null;
+        }
+      };
+
+      rafRef.current = requestAnimationFrame(tick);
+    }, [clearSwell]);
 
     useEffect(() => {
       const audio = new Audio(musicUrl);
       audio.loop = true;
       audio.preload = "auto";
-      audio.volume = 0.55;
+      audio.volume = WHISPER_VOLUME;
       audioRef.current = audio;
       return () => {
+        clearSwell();
         audio.pause();
         audio.removeAttribute("src");
         audio.load();
         audioRef.current = null;
       };
-    }, []);
+    }, [clearSwell]);
 
-    const start = useCallback(() => {
+    const beginScore = useCallback(() => {
       const audio = audioRef.current;
       if (!audio) return;
       setOn(true);
-      void audio.play().catch(() => {});
-    }, []);
+      audio.volume = WHISPER_VOLUME;
+      void audio.play().then(() => swellCinematically()).catch(() => {});
+    }, [swellCinematically]);
 
-    useImperativeHandle(ref, () => ({ start }), [start]);
+    useImperativeHandle(ref, () => ({ start: beginScore }), [beginScore]);
 
     useEffect(() => {
       const audio = audioRef.current;
       if (!audio) return;
       if (enabled && on) {
-        void audio.play().catch(() => {});
-      } else if (!on || !enabled) {
+        // Only start a new swell if we are not already rising or near full.
+        if (!swellingRef.current && audio.volume < 0.85) {
+          void audio.play().then(() => swellCinematically()).catch(() => {});
+        } else {
+          void audio.play().catch(() => {});
+        }
+      } else {
+        clearSwell();
         audio.pause();
       }
-    }, [enabled, on]);
+    }, [enabled, on, swellCinematically, clearSwell]);
 
     const toggle = useCallback(() => {
       const audio = audioRef.current;
@@ -54,11 +116,13 @@ export const AmbientAudio = forwardRef<AmbientAudioHandle, { enabled: boolean }>
       const next = !on;
       setOn(next);
       if (next) {
-        void audio.play().catch(() => {});
+        beginScore();
       } else {
+        clearSwell();
         audio.pause();
+        audio.volume = WHISPER_VOLUME;
       }
-    }, [on]);
+    }, [on, beginScore, clearSwell]);
 
     return (
       <button

@@ -98,6 +98,19 @@
     oklch(0.96 0.02 70) 45%,
     oklch(0.94 0.025 30) 100%
   );
+  --gradient-heaven: radial-gradient(
+      120% 90% at 50% 18%,
+      oklch(0.99 0.012 85) 0%,
+      oklch(0.97 0.02 75) 42%,
+      oklch(0.94 0.028 55) 72%,
+      oklch(0.93 0.03 30) 100%
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in oklab, var(--moonstone) 55%, white) 0%,
+      var(--ivory) 55%,
+      color-mix(in oklab, var(--blush) 35%, var(--ivory)) 100%
+    );
   --gradient-night: radial-gradient(
     120% 90% at 50% 15%,
     oklch(0.38 0.05 262) 0%,

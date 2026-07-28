@@ -1,409 +1,421 @@
-import {
-  motion,
-  useReducedMotion,
-  useScroll,
-  useSpring,
-  useTransform,
-  type MotionValue,
-} from "motion/react";
-import { useMemo, useRef } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GeometricStar } from "./Ornaments";
 import gardenDawn from "@/assets/garden-dawn.jpg";
+import ringsUnion from "@/assets/35575-407595493.mp4";
 
 const EASE = [0.22, 0.61, 0.36, 1] as const;
+const OPEN_MS = 2800;
 
-function HeavenMotes({ progress, reduce }: { progress: MotionValue<number>; reduce: boolean }) {
+type GatePhase = "closed" | "opening" | "rings" | "entered";
+
+/**
+ * Scene 3 — The gates of heaven.
+ * Guests touch the doors to open them. Through the light, the union of two rings
+ * plays — then the garden beyond. No scroll required to open.
+ */
+export function DoorwayScene() {
+  const reduce = useReducedMotion();
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [phase, setPhase] = useState<GatePhase>("closed");
+  const opened = phase !== "closed";
+
+  const openDoors = useCallback(() => {
+    if (phase !== "closed") return;
+    setPhase("opening");
+    window.setTimeout(
+      () => {
+        setPhase("rings");
+        const video = videoRef.current;
+        if (video) {
+          video.currentTime = 0;
+          void video.play().catch(() => {});
+        }
+      },
+      reduce ? 400 : OPEN_MS * 0.55,
+    );
+  }, [phase, reduce]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    const onEnded = () => setPhase("entered");
+    video.addEventListener("ended", onEnded);
+    return () => video.removeEventListener("ended", onEnded);
+  }, []);
+
+  // Soft fallback if video stalls — still let the guest continue.
+  useEffect(() => {
+    if (phase !== "rings") return;
+    const fallback = window.setTimeout(() => setPhase("entered"), 9000);
+    return () => window.clearTimeout(fallback);
+  }, [phase]);
+
   const motes = useMemo(
     () =>
-      Array.from({ length: 40 }, (_, i) => ({
+      Array.from({ length: 28 }, (_, i) => ({
         id: i,
-        left: ((i * 47) % 100) + (i % 7) * 0.3,
-        top: ((i * 31) % 92) + 2,
-        size: 1.5 + (i % 5),
-        delay: (i % 13) * 0.1,
-        drift: 6 + (i % 10),
+        left: ((i * 53) % 100),
+        top: ((i * 37) % 90) + 4,
+        size: 1.5 + (i % 4),
+        delay: (i % 9) * 0.35,
       })),
     [],
   );
 
-  // Soft motes visible from the first frame — the gate already feels alive.
-  const opacity = useTransform(progress, [0, 0.35, 0.8, 1], [0.45, 1, 1, 0.12]);
-  const scale = useTransform(progress, [0, 0.7, 1], [0.85, 1.15, 1.9]);
-
-  return (
-    <motion.div
-      className="pointer-events-none absolute inset-0"
-      style={{ opacity, scale }}
-      aria-hidden="true"
-    >
-      {motes.map((m) => (
-        <span
-          key={m.id}
-          className="absolute rounded-full"
-          style={{
-            left: `${m.left}%`,
-            top: `${m.top}%`,
-            width: m.size,
-            height: m.size,
-            background:
-              m.id % 3 === 0
-                ? "color-mix(in oklab, white 80%, var(--champagne))"
-                : "var(--champagne)",
-            opacity: 0.28 + (m.id % 5) * 0.1,
-            boxShadow: "0 0 16px color-mix(in oklab, var(--champagne) 80%, white)",
-            animation: reduce
-              ? undefined
-              : `heaven-mote ${6 + m.drift}s ease-in-out ${m.delay}s infinite`,
-          }}
-        />
-      ))}
-    </motion.div>
-  );
-}
-
-function GodRays({ progress }: { progress: MotionValue<number> }) {
-  const opacity = useTransform(progress, [0.15, 0.45, 0.85], [0.15, 0.75, 0.9]);
-  const rotate = useTransform(progress, [0, 1], [-4, 8]);
-  const scale = useTransform(progress, [0.2, 0.9], [0.95, 1.25]);
-
-  return (
-    <motion.div
-      className="pointer-events-none absolute inset-0 overflow-hidden"
-      style={{ opacity }}
-      aria-hidden="true"
-    >
-      <motion.div
-        className="absolute left-1/2 top-[8%] h-[160%] w-[180%] -translate-x-1/2"
-        style={{
-          rotate,
-          scale,
-          background:
-            "conic-gradient(from 200deg at 50% 18%, transparent 0deg, color-mix(in oklab, white 40%, transparent) 14deg, transparent 28deg, color-mix(in oklab, var(--champagne) 38%, transparent) 44deg, transparent 60deg, color-mix(in oklab, white 30%, transparent) 78deg, transparent 96deg, color-mix(in oklab, var(--blush) 28%, transparent) 118deg, transparent 140deg, color-mix(in oklab, var(--champagne) 22%, transparent) 165deg, transparent 200deg)",
-          filter: "blur(10px)",
-        }}
-      />
-    </motion.div>
-  );
-}
-
-/**
- * Scene 3 — The gates of heaven.
- * Doors open once into the heavenly garden — no second repeat of the same image.
- */
-export function DoorwayScene() {
-  const containerRef = useRef<HTMLElement>(null);
-  const reduce = useReducedMotion();
-
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-    offset: ["start start", "end end"],
-  });
-
-  // Slightly snappier so the gate never feels “stuck blank” behind a laggy spring.
-  const progress = useSpring(scrollYProgress, {
-    stiffness: reduce ? 140 : 54,
-    damping: reduce ? 28 : 20,
-    mass: 0.45,
-  });
-
-  // Everything meaningful is visible at progress 0 — no empty white frame.
-  const starOpacity = useTransform(progress, [0, 0.28, 0.48], [0.75, 0.4, 0]);
-  const starRotate = useTransform(progress, [0, 0.5], [8, -18]);
-  const starScale = useTransform(progress, [0, 0.45], [1, 1.35]);
-
-  const archOpacity = useTransform(progress, [0, 0.7, 0.9], [1, 1, 0]);
-  const archScale = useTransform(progress, [0, 0.55, 0.95], [1, 1.05, 1.65]);
-  const archDraw = useTransform(progress, [0, 0.01], [1, 1]); // drawn from the first frame
-  const archDrawInner = useTransform(progress, [0, 0.01], [1, 1]);
-
-  const doorOpen = useTransform(progress, [0.18, 0.52], [0, 1]);
-  const leftDoorRotate = useTransform(doorOpen, (v) => (reduce ? -72 * v : -88 * v));
-  const rightDoorRotate = useTransform(doorOpen, (v) => (reduce ? 72 * v : 88 * v));
-  const doorLift = useTransform(doorOpen, (v) => `${-3 * v}%`);
-  const doorGlow = useTransform(progress, [0, 0.35, 0.7], [0.55, 0.9, 1]);
-  const doorOpacity = useTransform(progress, [0, 0.68, 0.82], [1, 1, 0]);
-
-  const innerGlow = useTransform(progress, [0.1, 0.35, 0.55, 1], [0.2, 0.8, 1, 1]);
-  const crackLight = useTransform(progress, [0.12, 0.28, 0.48], [0.35, 1, 0.15]);
-  // Soft veil of light — never a second full-screen “reset” of the garden.
-  const floodOpacity = useTransform(progress, [0.45, 0.58, 0.72, 0.88], [0, 0.35, 0.12, 0]);
-  const floodBlur = useTransform(progress, [0.48, 0.7], [0, 4]);
-  const passScale = useTransform(progress, [0.4, 0.75, 1], [1.02, 1.08, 1.06]);
-  const passY = useTransform(progress, [0.4, 1], ["1%", "0%"]);
-  const gardenClarity = useTransform(progress, [0.35, 0.6], [5, 0]);
-  const gardenFilter = useTransform(gardenClarity, (v) => `blur(${v}px)`);
-  const floodFilter = useTransform(floodBlur, (v) => `blur(${v}px)`);
-  const veilOpacity = useTransform(progress, [0.62, 0.82], [1, 0]);
-  const auroraOpacity = useTransform(progress, [0.2, 0.5, 0.85], [0.2, 0.45, 0.08]);
-  const moteFade = useTransform(progress, [0, 0.5, 0.85], [1, 1, 0.15]);
-
-  // Guidance stays until the doors are clearly opening
-  const guideOpacity = useTransform(progress, [0, 0.2, 0.32], [1, 1, 0]);
-  const titleOpacity = useTransform(progress, [0, 0.15, 0.35], [1, 1, 0]);
-  const enterLine = useTransform(progress, [0.35, 0.45, 0.58, 0.7], [0, 1, 1, 0]);
-  // Caption settles once — this is the garden, not a repeat scene.
-  const gardenCaption = useTransform(progress, [0.72, 0.84, 1], [0, 1, 1]);
-  const gardenVeil = useTransform(progress, [0.75, 0.95], [0.55, 0.2]);
-
   return (
     <section
-      ref={containerRef}
-      className="relative h-[260svh] sm:h-[240svh]"
-      aria-label="The gates of heaven open"
+      className="relative flex min-h-[100svh] flex-col overflow-hidden"
+      aria-label="The gates of heaven"
+      style={{
+        background:
+          "radial-gradient(100% 70% at 50% 28%, color-mix(in oklab, var(--moonstone) 75%, white), transparent 58%), radial-gradient(90% 65% at 50% 78%, color-mix(in oklab, var(--blush) 40%, transparent), transparent 62%), #f4efe4",
+      }}
     >
-      <div className="sticky top-0 flex h-[100svh] flex-col overflow-hidden bg-ivory">
-        {/* Warm heavenly atmosphere — never empty white */}
+      {/* World beyond — garden settles after the rings */}
+      <motion.div
+        className="absolute inset-0"
+        initial={false}
+        animate={{
+          opacity: phase === "entered" ? 1 : phase === "rings" ? 0.35 : 0.15,
+          scale: phase === "entered" ? 1 : 1.06,
+        }}
+        transition={{ duration: reduce ? 0.4 : 2.4, ease: EASE }}
+      >
+        <img
+          src={gardenDawn}
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 h-full w-full object-cover"
+        />
         <div
           className="absolute inset-0"
           style={{
             background:
-              "radial-gradient(100% 70% at 50% 30%, color-mix(in oklab, var(--moonstone) 80%, white), transparent 60%), radial-gradient(90% 70% at 50% 70%, color-mix(in oklab, var(--blush) 45%, transparent), transparent 65%), radial-gradient(80% 50% at 50% 100%, color-mix(in oklab, var(--champagne) 40%, transparent), transparent 55%), #f7f1e6",
+              "radial-gradient(ellipse at 50% 42%, color-mix(in oklab, white 50%, transparent), color-mix(in oklab, #f4efe4 75%, transparent) 78%)",
           }}
         />
+      </motion.div>
 
-        <motion.div
-          className="absolute inset-0"
-          style={{
-            scale: passScale,
-            y: passY,
-            opacity: innerGlow,
-            filter: gardenFilter,
-          }}
-        >
-          <img
-            src={gardenDawn}
-            alt="A misty garden at dawn with olive trees reflected in still water"
-            className="absolute inset-0 h-full w-full object-cover"
-          />
-          <motion.div
-            className="absolute inset-0"
+      {/* Floating motes */}
+      <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+        {motes.map((m) => (
+          <span
+            key={m.id}
+            className="absolute rounded-full bg-champagne"
             style={{
-              opacity: gardenVeil,
-              background:
-                "radial-gradient(ellipse at 50% 42%, color-mix(in oklab, white 45%, transparent) 0%, color-mix(in oklab, var(--champagne) 22%, transparent) 45%, color-mix(in oklab, #f7f1e6 70%, transparent) 80%)",
+              left: `${m.left}%`,
+              top: `${m.top}%`,
+              width: m.size,
+              height: m.size,
+              opacity: opened ? 0.55 : 0.3,
+              boxShadow: "0 0 14px color-mix(in oklab, var(--champagne) 75%, white)",
+              animation: reduce ? undefined : `heaven-mote ${8 + (m.id % 6)}s ease-in-out ${m.delay}s infinite`,
             }}
           />
-        </motion.div>
+        ))}
+      </div>
 
-        <motion.div
-          className="pointer-events-none absolute inset-0 mix-blend-soft-light"
-          style={{
-            opacity: auroraOpacity,
-            background:
-              "linear-gradient(120deg, color-mix(in oklab, var(--blush) 35%, transparent), transparent 40%, color-mix(in oklab, var(--champagne) 40%, transparent) 60%, transparent)",
-          }}
-          aria-hidden="true"
-        />
+      {/* Title */}
+      <motion.div
+        className="relative z-30 px-5 pt-[max(1.1rem,env(safe-area-inset-top))] text-center sm:pt-9"
+        animate={{ opacity: opened ? 0 : 1, y: opened ? -12 : 0 }}
+        transition={{ duration: 1.2, ease: EASE }}
+      >
+        <p className="eyebrow text-ink/55">the gates of heaven</p>
+        <p className="mt-3 font-display text-[1.35rem] font-light text-ink/75 sm:text-3xl">
+          A door opens where mercy dwells
+        </p>
+      </motion.div>
 
-        <GodRays progress={progress} />
-        <motion.div style={{ opacity: moteFade }} className="absolute inset-0">
-          <HeavenMotes progress={progress} reduce={!!reduce} />
-        </motion.div>
-
-        {/* Title — always readable when the gate first appears */}
-        <motion.div
-          className="relative z-30 px-5 pt-[max(1.25rem,env(safe-area-inset-top))] text-center sm:pt-10"
-          style={{ opacity: titleOpacity }}
+      {/* Stage */}
+      <div
+        className="relative z-20 mx-auto flex w-full max-w-[40rem] flex-1 items-center justify-center px-0 sm:px-4"
+        style={{ perspective: reduce ? undefined : "1400px", perspectiveOrigin: "50% 55%" }}
+      >
+        <div
+          className="relative flex h-[min(78svh,42rem)] w-full items-end justify-center"
+          style={{ transformStyle: "preserve-3d" }}
         >
-          <p className="eyebrow text-ink/55">the gates of heaven</p>
-          <p className="mt-3 font-display text-[1.35rem] font-light text-ink/75 sm:text-3xl">
-            A door opens where mercy dwells
-          </p>
-        </motion.div>
-
-        <motion.div
-          className="absolute inset-0 z-10 flex items-center justify-center"
-          style={{
-            opacity: veilOpacity,
-            perspective: reduce ? undefined : 1200,
-            perspectiveOrigin: "50% 55%",
-          }}
-        >
+          {/* Soft glow behind doors */}
           <motion.div
-            className="relative flex h-[min(78svh,40rem)] w-[min(100vw,40rem)] items-end justify-center sm:h-[min(82svh,48rem)] sm:w-[min(92vw,38rem)]"
-            style={{ scale: archScale, transformStyle: "preserve-3d" }}
+            className="absolute bottom-[5%] left-1/2 z-0 h-[76%] w-[56%] -translate-x-1/2 rounded-t-full"
+            animate={{
+              opacity: opened ? 1 : 0.45,
+              scale: opened ? 1.08 : 1,
+            }}
+            transition={{ duration: reduce ? 0.3 : 2.2, ease: EASE }}
+            style={{
+              background:
+                "linear-gradient(180deg, white 0%, color-mix(in oklab, var(--champagne) 55%, white) 40%, transparent 100%)",
+              filter: "blur(22px)",
+              boxShadow: "0 0 100px 36px color-mix(in oklab, var(--champagne) 45%, transparent)",
+            }}
+            aria-hidden="true"
+          />
+
+          {/* Rings video — revealed through the open gate */}
+          <motion.div
+            className="absolute bottom-[6%] left-1/2 z-[1] h-[72%] w-[62%] -translate-x-1/2 overflow-hidden rounded-t-[48%]"
+            initial={false}
+            animate={{
+              opacity: phase === "rings" || phase === "entered" ? 1 : 0,
+              scale: phase === "entered" ? 1.04 : 1,
+            }}
+            transition={{ duration: 1.4, ease: EASE }}
+            style={{
+              WebkitMaskImage:
+                "radial-gradient(ellipse 88% 100% at 50% 100%, black 58%, transparent 78%)",
+              maskImage:
+                "radial-gradient(ellipse 88% 100% at 50% 100%, black 58%, transparent 78%)",
+              boxShadow: "0 0 60px 10px color-mix(in oklab, var(--champagne) 35%, transparent)",
+            }}
           >
-            <motion.div
-              className="absolute bottom-[4%] left-1/2 z-0 h-[78%] w-[58%] -translate-x-1/2 rounded-t-full sm:w-[50%]"
+            <video
+              ref={videoRef}
+              src={ringsUnion}
+              className="h-full w-full object-cover"
+              muted
+              playsInline
+              preload="auto"
+              aria-label="Two rings unite in light"
+            />
+            <div
+              className="pointer-events-none absolute inset-0"
               style={{
-                opacity: innerGlow,
                 background:
-                  "linear-gradient(180deg, color-mix(in oklab, white 95%, var(--champagne)) 0%, color-mix(in oklab, var(--champagne) 55%, white) 35%, color-mix(in oklab, var(--blush) 30%, transparent) 70%, transparent 100%)",
-                filter: "blur(20px)",
-                boxShadow:
-                  "0 0 90px 28px color-mix(in oklab, var(--champagne) 50%, transparent)",
+                  "radial-gradient(ellipse at 50% 40%, transparent 30%, color-mix(in oklab, var(--champagne) 25%, transparent) 100%)",
               }}
             />
-
-            <motion.div
-              className="absolute bottom-[8%] left-1/2 z-[1] h-[72%] w-[3px] -translate-x-1/2 rounded-full"
-              style={{
-                opacity: crackLight,
-                background:
-                  "linear-gradient(180deg, transparent, white 20%, var(--champagne) 50%, white 80%, transparent)",
-                boxShadow: "0 0 22px 5px color-mix(in oklab, white 70%, var(--champagne))",
-              }}
-            />
-
-            <motion.div
-              className="absolute inset-0 z-[1] flex items-center justify-center text-champagne/70"
-              style={{ opacity: starOpacity, scale: starScale, rotate: starRotate }}
-            >
-              <GeometricStar className="h-[90%] w-[90%]" />
-            </motion.div>
-
-            <motion.div
-              className="absolute bottom-[2%] z-[2] flex h-[84%] w-[80%] items-stretch justify-center sm:h-[80%] sm:w-[70%]"
-              style={{ transformStyle: "preserve-3d", opacity: doorOpacity, y: doorLift }}
-            >
-              <HeavenDoor side="left" rotateY={leftDoorRotate} glow={doorGlow} />
-              <HeavenDoor side="right" rotateY={rightDoorRotate} glow={doorGlow} />
-            </motion.div>
-
-            <motion.svg
-              viewBox="0 0 200 320"
-              className="pointer-events-none absolute inset-0 z-[3] h-full w-full"
-              style={{ opacity: archOpacity }}
-              aria-hidden="true"
-            >
-              <defs>
-                <linearGradient id="heaven-arch-stroke" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="var(--champagne)" stopOpacity="1" />
-                  <stop offset="55%" stopColor="var(--olivegold)" stopOpacity="0.85" />
-                  <stop offset="100%" stopColor="var(--champagne)" stopOpacity="0.45" />
-                </linearGradient>
-              </defs>
-              <motion.path
-                d="M14 318 V146 C14 74 50 20 100 4 C150 20 186 74 186 146 V318"
-                fill="none"
-                stroke="url(#heaven-arch-stroke)"
-                strokeWidth="1.4"
-                style={{ pathLength: archDraw }}
-              />
-              <motion.path
-                d="M30 318 V148 C30 88 58 38 100 22 C142 38 170 88 170 148 V318"
-                fill="none"
-                stroke="var(--champagne)"
-                strokeWidth="0.55"
-                opacity="0.55"
-                style={{ pathLength: archDrawInner }}
-              />
-            </motion.svg>
           </motion.div>
-        </motion.div>
 
-        <motion.div
-          className="pointer-events-none absolute inset-0 z-20"
-          style={{
-            opacity: floodOpacity,
-            filter: floodFilter,
-            background:
-              "radial-gradient(circle at 50% 46%, white 0%, color-mix(in oklab, white 80%, var(--champagne)) 24%, color-mix(in oklab, var(--champagne) 35%, white) 50%, color-mix(in oklab, #f7f1e6 75%, transparent) 74%, transparent 90%)",
-          }}
-          aria-hidden="true"
-        />
-
-        <motion.p
-          className="pointer-events-none absolute inset-x-0 top-[42%] z-30 px-6 text-center font-display text-xl italic text-olivegold/90 sm:text-2xl"
-          style={{ opacity: enterLine }}
-        >
-          step into the light
-        </motion.p>
-
-        <motion.div
-          className="pointer-events-none absolute inset-x-0 bottom-0 z-30 flex items-end justify-center pb-16"
-          style={{ opacity: gardenCaption }}
-        >
-          <p className="eyebrow text-center text-ink/70">two paths, written long before</p>
-        </motion.div>
-
-        {/* Crystal-clear next step for every guest */}
-        <motion.div
-          className="absolute inset-x-0 bottom-0 z-40 flex flex-col items-center gap-3 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-6"
-          style={{
-            opacity: guideOpacity,
-            background:
-              "linear-gradient(180deg, transparent, color-mix(in oklab, #f7f1e6 88%, transparent) 45%, #f7f1e6)",
-          }}
-        >
-          <p className="font-display text-base text-ink/70 sm:text-lg">
-            Scroll slowly to open the doors
-          </p>
-          <motion.span
-            className="flex h-11 w-11 items-center justify-center rounded-full border border-champagne/50 bg-card/60 text-olivegold backdrop-blur-sm"
-            animate={reduce ? undefined : { y: [0, 8, 0] }}
-            transition={{ duration: 2.2, repeat: Infinity, ease: EASE }}
+          {/* Geometry behind closed gate */}
+          <motion.div
+            className="pointer-events-none absolute inset-0 z-[1] flex items-center justify-center text-champagne/55"
+            animate={{ opacity: opened ? 0 : 0.85, rotate: opened ? -12 : 0, scale: opened ? 1.2 : 1 }}
+            transition={{ duration: 2, ease: EASE }}
             aria-hidden="true"
           >
-            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none">
-              <path
-                d="M6 9l6 6 6-6"
-                stroke="currentColor"
-                strokeWidth="1.3"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </motion.span>
-        </motion.div>
+            <GeometricStar className="h-[88%] w-[88%] animate-spin-slow" />
+          </motion.div>
+
+          {/* Twin doors — tap to open */}
+          <motion.button
+            type="button"
+            onClick={openDoors}
+            disabled={opened}
+            aria-label={opened ? "Gates open" : "Touch the doors to open"}
+            className="absolute bottom-[2%] z-[2] flex h-[84%] w-[82%] cursor-pointer items-stretch justify-center border-0 bg-transparent p-0 sm:w-[72%]"
+            style={{ transformStyle: "preserve-3d", WebkitTapHighlightColor: "transparent" }}
+            whileTap={opened || reduce ? undefined : { scale: 0.985 }}
+          >
+            <HeavenDoor
+              side="left"
+              open={opened}
+              reduce={!!reduce}
+            />
+            <HeavenDoor
+              side="right"
+              open={opened}
+              reduce={!!reduce}
+            />
+          </motion.button>
+
+          {/* Gold arch frame */}
+          <svg
+            viewBox="0 0 200 320"
+            className="pointer-events-none absolute inset-0 z-[3] h-full w-full"
+            aria-hidden="true"
+          >
+            <defs>
+              <linearGradient id="heaven-arch-stroke" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="var(--champagne)" stopOpacity="1" />
+                <stop offset="50%" stopColor="#e8d5a3" stopOpacity="0.95" />
+                <stop offset="100%" stopColor="var(--olivegold)" stopOpacity="0.55" />
+              </linearGradient>
+              <filter id="arch-soft-glow" x="-30%" y="-20%" width="160%" height="140%">
+                <feGaussianBlur stdDeviation="1.4" result="b" />
+                <feMerge>
+                  <feMergeNode in="b" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+            </defs>
+            <path
+              d="M12 318 V144 C12 70 48 16 100 2 C152 16 188 70 188 144 V318"
+              fill="none"
+              stroke="url(#heaven-arch-stroke)"
+              strokeWidth="1.6"
+              filter="url(#arch-soft-glow)"
+            />
+            <path
+              d="M28 318 V146 C28 86 56 36 100 20 C144 36 172 86 172 146 V318"
+              fill="none"
+              stroke="var(--champagne)"
+              strokeWidth="0.55"
+              opacity="0.5"
+            />
+          </svg>
+        </div>
       </div>
+
+      {/* Guidance / after-open copy */}
+      <div className="relative z-30 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-2">
+        <AnimatePresence mode="wait">
+          {!opened ? (
+            <motion.div
+              key="guide"
+              className="flex flex-col items-center gap-3 px-6 text-center"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.8, ease: EASE }}
+            >
+              <p className="font-display text-base text-ink/70 sm:text-lg">
+                Touch the doors to open
+              </p>
+              <motion.span
+                className="flex h-11 w-11 items-center justify-center rounded-full border border-champagne/55 bg-card/70 text-olivegold shadow-[0_0_24px_color-mix(in_oklab,var(--champagne)_35%,transparent)] backdrop-blur-sm"
+                animate={reduce ? undefined : { scale: [1, 1.06, 1], opacity: [0.75, 1, 0.75] }}
+                transition={{ duration: 2.4, repeat: Infinity, ease: EASE }}
+                aria-hidden="true"
+              >
+                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none">
+                  <path
+                    d="M8 11V8a4 4 0 1 1 8 0v3M6 11h12v9H6z"
+                    stroke="currentColor"
+                    strokeWidth="1.2"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </motion.span>
+            </motion.div>
+          ) : phase === "rings" ? (
+            <motion.p
+              key="rings"
+              className="px-6 text-center font-display text-lg italic text-olivegold/90 sm:text-xl"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 1.2, ease: EASE }}
+            >
+              two souls, one covenant
+            </motion.p>
+          ) : (
+            <motion.div
+              key="entered"
+              className="flex flex-col items-center gap-2 px-6 text-center"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 1.4, ease: EASE }}
+            >
+              <p className="eyebrow text-ink/65">two paths, written long before</p>
+              <p className="font-display text-sm text-ink/50">scroll to continue</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* Light flood while opening */}
+      <motion.div
+        className="pointer-events-none absolute inset-0 z-[25]"
+        initial={false}
+        animate={{
+          opacity: phase === "opening" ? 0.55 : phase === "rings" ? 0.2 : 0,
+        }}
+        transition={{ duration: 1.6, ease: EASE }}
+        style={{
+          background:
+            "radial-gradient(circle at 50% 48%, white 0%, color-mix(in oklab, white 75%, var(--champagne)) 30%, transparent 72%)",
+        }}
+        aria-hidden="true"
+      />
     </section>
   );
 }
 
 function HeavenDoor({
   side,
-  rotateY,
-  glow,
+  open,
+  reduce,
 }: {
   side: "left" | "right";
-  rotateY: MotionValue<number>;
-  glow: MotionValue<number>;
+  open: boolean;
+  reduce: boolean;
 }) {
-  const origin = side === "left" ? "left center" : "right center";
-  const edge =
-    side === "left"
-      ? "inset -28px 0 50px color-mix(in oklab, var(--champagne) 28%, transparent), -10px 0 40px color-mix(in oklab, var(--ink) 6%, transparent)"
-      : "inset 28px 0 50px color-mix(in oklab, var(--champagne) 28%, transparent), 10px 0 40px color-mix(in oklab, var(--ink) 6%, transparent)";
-
-  const borderSide =
-    side === "left"
-      ? { borderRight: "1px solid color-mix(in oklab, var(--champagne) 70%, white)" }
-      : { borderLeft: "1px solid color-mix(in oklab, var(--champagne) 70%, white)" };
-
-  const sheenOpacity = useTransform(glow, (v) => 0.3 + v * 0.4);
+  const isLeft = side === "left";
+  const rotateY = open ? (isLeft ? (reduce ? -75 : -98) : reduce ? 75 : 98) : 0;
 
   return (
     <motion.div
       className="relative h-full w-1/2 overflow-hidden"
+      initial={false}
+      animate={{ rotateY }}
+      transition={{ duration: reduce ? 0.5 : 2.6, ease: EASE }}
       style={{
-        rotateY,
-        transformOrigin: origin,
+        transformOrigin: isLeft ? "left center" : "right center",
         transformStyle: "preserve-3d",
-        background:
-          "linear-gradient(165deg, color-mix(in oklab, white 88%, var(--champagne)) 0%, color-mix(in oklab, var(--moonstone) 55%, white) 38%, color-mix(in oklab, var(--sandstone) 35%, var(--ivory)) 72%, color-mix(in oklab, var(--champagne) 22%, var(--ivory)) 100%)",
-        boxShadow: edge,
-        ...borderSide,
+        background: isLeft
+          ? "linear-gradient(105deg, #f7f0e2 0%, #efe4cf 22%, #e8d9b8 48%, #f3ead8 72%, #ebe0c8 100%)"
+          : "linear-gradient(255deg, #f7f0e2 0%, #efe4cf 22%, #e8d9b8 48%, #f3ead8 72%, #ebe0c8 100%)",
+        boxShadow: isLeft
+          ? "inset -22px 0 36px rgba(180,150,90,0.18), inset 0 -20px 40px rgba(80,60,30,0.08), -14px 8px 40px rgba(40,30,15,0.12)"
+          : "inset 22px 0 36px rgba(180,150,90,0.18), inset 0 -20px 40px rgba(80,60,30,0.08), 14px 8px 40px rgba(40,30,15,0.12)",
+        borderRight: isLeft ? "1px solid color-mix(in oklab, var(--champagne) 75%, white)" : undefined,
+        borderLeft: !isLeft ? "1px solid color-mix(in oklab, var(--champagne) 75%, white)" : undefined,
       }}
     >
-      <motion.div
-        className="absolute inset-0"
+      {/* Pearlescent sheen */}
+      <div
+        className="pointer-events-none absolute inset-0"
         style={{
-          opacity: sheenOpacity,
-          background:
-            side === "left"
-              ? "linear-gradient(115deg, color-mix(in oklab, white 70%, transparent) 0%, transparent 42%, color-mix(in oklab, var(--champagne) 25%, transparent) 100%)"
-              : "linear-gradient(245deg, color-mix(in oklab, white 70%, transparent) 0%, transparent 42%, color-mix(in oklab, var(--champagne) 25%, transparent) 100%)",
+          background: isLeft
+            ? "linear-gradient(120deg, rgba(255,255,255,0.55) 0%, transparent 38%, rgba(201,169,110,0.18) 100%)"
+            : "linear-gradient(240deg, rgba(255,255,255,0.55) 0%, transparent 38%, rgba(201,169,110,0.18) 100%)",
+        }}
+      />
+
+      {/* Raised panel moldings — realistic door construction */}
+      <div
+        className="pointer-events-none absolute inset-[7%] rounded-[2px]"
+        style={{
+          boxShadow:
+            "inset 0 0 0 1px color-mix(in oklab, var(--champagne) 45%, transparent), inset 0 0 0 7px color-mix(in oklab, white 35%, transparent), 0 1px 0 color-mix(in oklab, var(--olivegold) 25%, transparent)",
         }}
       />
       <div
-        className="absolute inset-0 mix-blend-soft-light"
+        className="pointer-events-none absolute left-[14%] right-[14%] top-[12%] h-[34%] rounded-[2px]"
         style={{
-          background:
-            "radial-gradient(ellipse at 50% 40%, color-mix(in oklab, white 55%, transparent), transparent 70%)",
+          boxShadow:
+            "inset 0 0 0 1px color-mix(in oklab, var(--champagne) 40%, transparent), inset 2px 2px 6px rgba(255,255,255,0.35), inset -2px -2px 6px rgba(120,90,40,0.12)",
         }}
       />
+      <div
+        className="pointer-events-none absolute bottom-[12%] left-[14%] right-[14%] h-[34%] rounded-[2px]"
+        style={{
+          boxShadow:
+            "inset 0 0 0 1px color-mix(in oklab, var(--champagne) 40%, transparent), inset 2px 2px 6px rgba(255,255,255,0.35), inset -2px -2px 6px rgba(120,90,40,0.12)",
+        }}
+      />
+
       <DoorFiligree side={side} />
+
+      {/* Ornate handle near the meeting edge */}
+      <div
+        className="pointer-events-none absolute top-1/2 z-10 -translate-y-1/2"
+        style={{ ...(isLeft ? { right: "10%" } : { left: "10%" }) }}
+      >
+        <span
+          className="block h-10 w-10 rounded-full"
+          style={{
+            background:
+              "radial-gradient(circle at 35% 30%, #f3e6c4, var(--champagne) 45%, var(--olivegold) 80%)",
+            boxShadow:
+              "0 2px 6px rgba(80,60,20,0.25), inset 0 1px 2px rgba(255,255,255,0.65), 0 0 18px color-mix(in oklab, var(--champagne) 45%, transparent)",
+            border: "1px solid color-mix(in oklab, var(--olivegold) 55%, white)",
+          }}
+        />
+      </div>
     </motion.div>
   );
 }
@@ -413,28 +425,25 @@ function DoorFiligree({ side }: { side: "left" | "right" }) {
   return (
     <svg
       viewBox="0 0 120 220"
-      className="absolute inset-0 h-full w-full text-champagne/75"
+      className="pointer-events-none absolute inset-0 h-full w-full"
       style={{ transform: mirror }}
       aria-hidden="true"
     >
       <defs>
         <linearGradient id={`door-gold-${side}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="var(--champagne)" stopOpacity="0.95" />
-          <stop offset="100%" stopColor="var(--olivegold)" stopOpacity="0.45" />
+          <stop offset="0%" stopColor="#e8d5a3" stopOpacity="0.95" />
+          <stop offset="100%" stopColor="var(--olivegold)" stopOpacity="0.5" />
         </linearGradient>
       </defs>
-      <g fill="none" stroke={`url(#door-gold-${side})`} strokeWidth="0.75">
-        <path d="M10 10 H110 V210 H10 Z" opacity="0.4" />
-        <path d="M20 20 H100 V200 H20 Z" opacity="0.28" />
-        <path d="M60 32 C82 50 82 78 60 98 C38 78 38 50 60 32 Z" opacity="0.85" />
-        <path d="M60 98 C82 116 82 144 60 164 C38 144 38 116 60 98 Z" opacity="0.65" />
-        <circle cx="60" cy="116" r="6" opacity="0.9" />
-        <path d="M60 44 V88 M46 66 H74" opacity="0.5" />
+      <g fill="none" stroke={`url(#door-gold-${side})`} strokeWidth="0.7">
+        <path d="M60 40 C82 58 82 86 60 106 C38 86 38 58 60 40 Z" opacity="0.8" />
+        <path d="M60 106 C82 124 82 152 60 172 C38 152 38 124 60 106 Z" opacity="0.55" />
+        <circle cx="60" cy="123" r="5.5" opacity="0.85" />
         <path
-          d="M78 52c-7 1-12 7-12 14s5 13 12 14c-9 0-16-7-16-16s7-16 16-16z"
-          opacity="0.55"
+          d="M78 54c-7 1-12 7-12 14s5 13 12 14c-9 0-16-7-16-16s7-16 16-16z"
+          opacity="0.5"
         />
-        <path d="M28 188 Q60 168 92 188" opacity="0.45" />
+        <path d="M30 188 Q60 168 90 188" opacity="0.4" />
       </g>
     </svg>
   );

@@ -139,7 +139,7 @@ export function SoulsScene() {
   return (
     <section
       className="relative overflow-hidden bg-ivory px-6 py-24"
-      aria-labelledby="names-title"
+      aria-label="Two paths become one"
     >
       <img
         src={floralSpray}
@@ -215,29 +215,9 @@ export function SoulsScene() {
           </p>
         </Reveal>
 
-        <div className="mt-14 text-center">
-          <Reveal delay={0.6}>
-            <h1
-              id="names-title"
-              className="font-script text-6xl leading-none text-ink sm:text-8xl"
-            >
-              {invitation.groom}
-            </h1>
-          </Reveal>
-          <Reveal delay={0.9}>
-            <p className="my-4 font-display text-2xl tracking-[0.3em] text-sandstone sm:text-3xl">
-              and
-            </p>
-          </Reveal>
-          <Reveal delay={1.1}>
-            <p className="font-script text-6xl leading-none text-ink sm:text-8xl">
-              {invitation.bride}
-            </p>
-          </Reveal>
-          <Reveal delay={1.4}>
-            <Divider className="mt-12" />
-          </Reveal>
-        </div>
+        <Reveal delay={0.8} className="mt-14">
+          <Divider />
+        </Reveal>
       </div>
     </section>
   );

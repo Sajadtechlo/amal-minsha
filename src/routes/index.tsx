@@ -70,6 +70,7 @@ export const Route = createFileRoute("/")({
 
 function Index() {
   const [entered, setEntered] = useState(false);
+  const [gateReady, setGateReady] = useState(false);
   const audioRef = useRef<AmbientAudioHandle>(null);
 
   return (
@@ -91,18 +92,27 @@ function Index() {
       >
         <h1 className="sr-only">{title}</h1>
         <VerseScene active={entered} />
-        <DoorwayScene />
-        <SoulsScene />
-        <AnnouncementScene />
-        <CelestialClock />
-        <VenueScene />
-        <RsvpScene />
-        <BlessingScene />
-        <footer className="pb-16 text-center">
-          <p className="eyebrow">
-            {invitation.venue} · {invitation.city}
-          </p>
-        </footer>
+        <DoorwayScene onReady={() => setGateReady(true)} />
+        <div
+          aria-hidden={!gateReady}
+          style={{
+            opacity: gateReady ? 1 : 0,
+            transition: "opacity 1.8s var(--ease-breath)",
+            pointerEvents: gateReady ? "auto" : "none",
+          }}
+        >
+          <SoulsScene />
+          <AnnouncementScene />
+          <CelestialClock />
+          <VenueScene />
+          <RsvpScene />
+          <BlessingScene />
+          <footer className="pb-16 text-center">
+            <p className="eyebrow">
+              {invitation.venue} · {invitation.city}
+            </p>
+          </footer>
+        </div>
       </main>
     </>
   );

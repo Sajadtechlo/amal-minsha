@@ -18,19 +18,28 @@ export function DoorwayScene({ onReady }: { onReady?: () => void }) {
   const sectionRef = useRef<HTMLElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [phase, setPhase] = useState<GatePhase>("closed");
-  const [inView, setInView] = useState(false);
+  const touchStartY = useRef(0);
   const opened = phase !== "closed";
-  const ritualActive = inView && phase !== "ready";
+  /** Full freeze only while doors are opening / rings / names — not while merely approaching. */
+  const ritualLocked = phase === "opening" || phase === "rings" || phase === "names";
+
+  const pinToGate = useCallback(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+    const top = Math.round(el.getBoundingClientRect().top + window.scrollY);
+    window.scrollTo({ top, behavior: "auto" });
+  }, []);
 
   const openDoors = useCallback(() => {
     if (phase !== "closed") return;
+    pinToGate();
     setPhase("opening");
     // Begin the rings as the doors start to part — one continuous moment.
     window.setTimeout(
       () => setPhase("rings"),
       reduce ? 200 : 700,
     );
-  }, [phase, reduce]);
+  }, [phase, reduce, pinToGate]);
 
   useEffect(() => {
     if (phase !== "opening" && phase !== "rings") return;
@@ -47,28 +56,116 @@ export function DoorwayScene({ onReady }: { onReady?: () => void }) {
     videoRef.current?.pause();
   }, [phase]);
 
+  // Before the gate is ready, guests may scroll verse ↔ doors, but never past the doors.
   useEffect(() => {
+    if (phase === "ready") return;
+
+    const maxScrollY = () => {
+      const el = sectionRef.current;
+      if (!el) return Number.POSITIVE_INFINITY;
+      return Math.max(0, Math.round(el.getBoundingClientRect().top + window.scrollY));
+    };
+
+    const clamp = () => {
+      const max = maxScrollY();
+      if (window.scrollY > max + 1) {
+        window.scrollTo({ top: max, behavior: "auto" });
+      }
+    };
+
+    const onWheel = (e: WheelEvent) => {
+      if (ritualLocked) {
+        e.preventDefault();
+        return;
+      }
+      const max = maxScrollY();
+      if (window.scrollY >= max - 1 && e.deltaY > 0) {
+        e.preventDefault();
+        window.scrollTo({ top: max, behavior: "auto" });
+      }
+    };
+
+    const onTouchStart = (e: TouchEvent) => {
+      touchStartY.current = e.touches[0]?.clientY ?? 0;
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (ritualLocked) {
+        e.preventDefault();
+        return;
+      }
+      const max = maxScrollY();
+      const y = e.touches[0]?.clientY ?? 0;
+      // Finger moving up means the page scrolls down.
+      const scrollingDown = y < touchStartY.current - 4;
+      if (window.scrollY >= max - 1 && scrollingDown) {
+        e.preventDefault();
+        window.scrollTo({ top: max, behavior: "auto" });
+      }
+    };
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      const keys = ["PageDown", "ArrowDown", " ", "End"];
+      if (!keys.includes(e.key)) return;
+      if (ritualLocked) {
+        e.preventDefault();
+        return;
+      }
+      const max = maxScrollY();
+      if (window.scrollY >= max - 1) e.preventDefault();
+    };
+
+    window.addEventListener("scroll", clamp, { passive: true });
+    window.addEventListener("wheel", onWheel, { passive: false });
+    window.addEventListener("touchstart", onTouchStart, { passive: true });
+    window.addEventListener("touchmove", onTouchMove, { passive: false });
+    window.addEventListener("keydown", onKeyDown);
+    clamp();
+
+    return () => {
+      window.removeEventListener("scroll", clamp);
+      window.removeEventListener("wheel", onWheel);
+      window.removeEventListener("touchstart", onTouchStart);
+      window.removeEventListener("touchmove", onTouchMove);
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [phase, ritualLocked]);
+
+  // Soft-align the doorway when it becomes the main focus (manual or auto scroll).
+  useEffect(() => {
+    if (phase !== "closed") return;
     const el = sectionRef.current;
     if (!el) return;
+
+    let snapped = false;
     const io = new IntersectionObserver(
-      ([entry]) => setInView(entry.isIntersecting && entry.intersectionRatio >= 0.45),
-      { threshold: [0.45, 0.7] },
+      ([entry]) => {
+        if (snapped || !entry.isIntersecting) return;
+        if (entry.intersectionRatio < 0.62) return;
+        snapped = true;
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      },
+      { threshold: [0.62, 0.8] },
     );
     io.observe(el);
     return () => io.disconnect();
-  }, []);
+  }, [phase]);
 
-  // Lock scrolling during the gate ritual; unlock only after names have arrived.
+  // Hard-lock the page only during the opening ritual itself.
   useEffect(() => {
-    if (!ritualActive) {
+    if (!ritualLocked) {
       document.body.style.overflow = "";
+      document.documentElement.style.overflow = "";
       return;
     }
+    pinToGate();
     document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = "";
+      document.documentElement.style.overflow = "";
     };
-  }, [ritualActive]);
+  }, [ritualLocked, pinToGate]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -387,21 +484,49 @@ export function DoorwayScene({ onReady }: { onReady?: () => void }) {
               <p className="font-display text-base text-ink/70 sm:text-lg">
                 Touch the doors to open
               </p>
-              <motion.span
-                className="flex h-11 w-11 items-center justify-center rounded-full border border-champagne/55 bg-card/70 text-olivegold shadow-[0_0_24px_color-mix(in_oklab,var(--champagne)_35%,transparent)] backdrop-blur-sm"
-                animate={reduce ? undefined : { scale: [1, 1.06, 1], opacity: [0.75, 1, 0.75] }}
-                transition={{ duration: 2.4, repeat: Infinity, ease: EASE }}
-                aria-hidden="true"
-              >
-                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none">
-                  <path
-                    d="M8 11V8a4 4 0 1 1 8 0v3M6 11h12v9H6z"
-                    stroke="currentColor"
-                    strokeWidth="1.2"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </motion.span>
+              <span className="relative flex h-14 w-14 items-center justify-center">
+                {!reduce && (
+                  <>
+                    <span
+                      className="pointer-events-none absolute inset-0 rounded-full border border-olivegold/45"
+                      style={{ animation: "invite-ring 2.2s ease-out infinite" }}
+                      aria-hidden="true"
+                    />
+                    <span
+                      className="pointer-events-none absolute inset-0 rounded-full border border-champagne/40"
+                      style={{ animation: "invite-ring 2.2s ease-out 0.7s infinite" }}
+                      aria-hidden="true"
+                    />
+                  </>
+                )}
+                <motion.span
+                  className="relative flex h-11 w-11 items-center justify-center rounded-full border border-champagne/60 bg-card/70 text-olivegold backdrop-blur-sm"
+                  animate={
+                    reduce
+                      ? undefined
+                      : {
+                          scale: [1, 1.07, 1],
+                          opacity: [0.7, 1, 0.7],
+                          boxShadow: [
+                            "0 0 0 0 color-mix(in oklab, var(--champagne) 0%, transparent)",
+                            "0 0 28px 6px color-mix(in oklab, var(--champagne) 45%, transparent)",
+                            "0 0 0 0 color-mix(in oklab, var(--champagne) 0%, transparent)",
+                          ],
+                        }
+                  }
+                  transition={{ duration: 2, repeat: Infinity, ease: EASE }}
+                  aria-hidden="true"
+                >
+                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none">
+                    <path
+                      d="M8 11V8a4 4 0 1 1 8 0v3M6 11h12v9H6z"
+                      stroke="currentColor"
+                      strokeWidth="1.2"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </motion.span>
+              </span>
             </motion.div>
           )}
         </AnimatePresence>

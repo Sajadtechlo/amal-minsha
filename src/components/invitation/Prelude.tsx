@@ -98,26 +98,83 @@ export function Prelude({ onEnter }: { onEnter: () => void }) {
               type="button"
               onClick={enter}
               className="group mt-12 inline-flex flex-col items-center gap-4 focus-visible:outline-none"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 2.6, delay: 2.6, ease: EASE }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 2.2, delay: 2.4, ease: EASE }}
+              aria-label="Tap to open the invitation"
             >
-              <span className="eyebrow text-ink/55">Open the invitation</span>
-              <span className="relative flex h-14 w-14 items-center justify-center rounded-full border border-champagne/55 bg-card/40 shadow-[0_0_28px_color-mix(in_oklab,var(--champagne)_30%,transparent)] backdrop-blur-sm transition-all duration-700 group-hover:border-olivegold group-focus-visible:border-olivegold">
-                <span className="absolute inset-0 animate-breathe rounded-full bg-champagne/15" />
-                <svg
-                  viewBox="0 0 24 24"
-                  className="h-4 w-4 text-olivegold"
-                  fill="none"
-                  aria-hidden="true"
+              <motion.span
+                className="eyebrow tracking-[0.28em] text-ink/65"
+                animate={
+                  reduce
+                    ? undefined
+                    : {
+                        opacity: [0.45, 1, 0.45],
+                        textShadow: [
+                          "0 0 0 transparent",
+                          "0 0 18px color-mix(in oklab, var(--champagne) 70%, transparent)",
+                          "0 0 0 transparent",
+                        ],
+                      }
+                }
+                transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+              >
+                Tap to open
+              </motion.span>
+
+              <span className="relative flex h-16 w-16 items-center justify-center">
+                {/* Expanding blink rings — the clear “tap here” cue */}
+                {!reduce && (
+                  <>
+                    <span
+                      className="pointer-events-none absolute inset-0 rounded-full border border-olivegold/50"
+                      style={{ animation: "invite-ring 2.2s ease-out infinite" }}
+                      aria-hidden="true"
+                    />
+                    <span
+                      className="pointer-events-none absolute inset-0 rounded-full border border-champagne/45"
+                      style={{ animation: "invite-ring 2.2s ease-out 0.7s infinite" }}
+                      aria-hidden="true"
+                    />
+                  </>
+                )}
+
+                <motion.span
+                  className="relative flex h-14 w-14 items-center justify-center rounded-full border border-champagne/70 bg-card/55 backdrop-blur-sm"
+                  animate={
+                    reduce
+                      ? undefined
+                      : {
+                          scale: [1, 1.08, 1],
+                          boxShadow: [
+                            "0 0 0 0 color-mix(in oklab, var(--champagne) 0%, transparent)",
+                            "0 0 34px 8px color-mix(in oklab, var(--champagne) 55%, transparent)",
+                            "0 0 0 0 color-mix(in oklab, var(--champagne) 0%, transparent)",
+                          ],
+                          borderColor: [
+                            "color-mix(in oklab, var(--champagne) 55%, white)",
+                            "color-mix(in oklab, var(--olivegold) 85%, white)",
+                            "color-mix(in oklab, var(--champagne) 55%, white)",
+                          ],
+                        }
+                  }
+                  transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
                 >
-                  <path
-                    d="M6 9l6 6 6-6"
-                    stroke="currentColor"
-                    strokeWidth="1.1"
-                    strokeLinecap="round"
-                  />
-                </svg>
+                  <span className="absolute inset-0 animate-breathe rounded-full bg-champagne/20" />
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="relative z-10 h-5 w-5 text-olivegold"
+                    fill="none"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M6 9l6 6 6-6"
+                      stroke="currentColor"
+                      strokeWidth="1.35"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </motion.span>
               </span>
             </motion.button>
           </div>

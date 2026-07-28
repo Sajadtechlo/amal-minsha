@@ -93,26 +93,27 @@ function Index() {
         <h1 className="sr-only">{title}</h1>
         <VerseScene active={entered} />
         <DoorwayScene onReady={() => setGateReady(true)} />
-        <div
-          aria-hidden={!gateReady}
-          style={{
-            opacity: gateReady ? 1 : 0,
-            transition: "opacity 1.8s var(--ease-breath)",
-            pointerEvents: gateReady ? "auto" : "none",
-          }}
-        >
-          <SoulsScene />
-          <AnnouncementScene />
-          <CelestialClock />
-          <VenueScene />
-          <RsvpScene />
-          <BlessingScene />
-          <footer className="pb-16 text-center">
-            <p className="eyebrow">
-              {invitation.venue} · {invitation.city}
-            </p>
-          </footer>
-        </div>
+        {/* Keep later scenes out of the document flow until the gate ritual finishes —
+            otherwise manual scroll lands in empty invisible space and feels broken. */}
+        {gateReady && (
+          <div
+            style={{
+              animation: "gate-reveal 1.8s var(--ease-breath) both",
+            }}
+          >
+            <SoulsScene />
+            <AnnouncementScene />
+            <CelestialClock />
+            <VenueScene />
+            <RsvpScene />
+            <BlessingScene />
+            <footer className="pb-16 text-center">
+              <p className="eyebrow">
+                {invitation.venue} · {invitation.city}
+              </p>
+            </footer>
+          </div>
+        )}
       </main>
     </>
   );

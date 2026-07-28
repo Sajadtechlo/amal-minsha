@@ -261,6 +261,26 @@
   }
 }
 
+@keyframes invite-ring {
+  0% {
+    transform: scale(1);
+    opacity: 0.75;
+  }
+  100% {
+    transform: scale(1.85);
+    opacity: 0;
+  }
+}
+
+@keyframes gate-reveal {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 @utility animate-drift {
   animation: drift 14s var(--ease-breath) infinite;
 }
